@@ -258,6 +258,25 @@ def build_app() -> FastMCP:
         return {"strip": strip, "device": device_name, "driver": driver}
 
     @mcp.tool()
+    def set_strip_label(strip: int, label: str, dry_run: bool = False) -> dict:
+        """Set a strip's display label (shows in the Voicemeeter UI and in
+        mixer_state/diff reports)."""
+        if dry_run:
+            return preview("set_strip_label", {"strip": strip, "label": label})
+        vm = get_vm()
+        vm.strip(strip).label = label
+        return {"strip": strip, "label": label}
+
+    @mcp.tool()
+    def set_bus_label(bus: int, label: str, dry_run: bool = False) -> dict:
+        """Set a bus's display label."""
+        if dry_run:
+            return preview("set_bus_label", {"bus": bus, "label": label})
+        vm = get_vm()
+        vm.bus(bus).label = label
+        return {"bus": bus, "label": label}
+
+    @mcp.tool()
     def health_check() -> dict:
         """Verify connection to Voicemeeter and report kind/version."""
         try:

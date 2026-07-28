@@ -11,6 +11,7 @@ EXPECTED = {
     "set_bus_gain", "mute_bus", "get_levels", "trigger_macro_button",
     "load_preset", "restart_audio_engine", "health_check",
     "snapshot_state", "diff_vs_snapshot", "set_strip_comp", "set_strip_gate",
+    "set_strip_label", "set_bus_label",
     "set_bus_eq", "set_strip_device",
 }
 
