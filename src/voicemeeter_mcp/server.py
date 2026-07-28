@@ -155,6 +155,101 @@ def build_app() -> FastMCP:
         return {"restarted": True}
 
     @mcp.tool()
+    def snapshot_state(name: str = "baseline") -> dict:
+        """Save the full mixer state (gains, mutes, routing, comp/gate, EQ) to a
+        named snapshot file. Take one when the stream sounds RIGHT."""
+        from .snapshots import capture_state, save_snapshot
+
+        vm = get_vm()
+        state = capture_state(vm)
+        path = save_snapshot(state, name)
+        return {"snapshot_path": str(path), "kind": state["kind"]}
+
+    @mcp.tool()
+    def diff_vs_snapshot(snapshot_path: str) -> dict:
+        """Compare the LIVE mixer state against a saved snapshot — answers
+        'what changed since the known-good config'."""
+        import json as _json
+        from pathlib import Path as _Path
+
+        from .snapshots import capture_state, diff_states
+
+        vm = get_vm()
+        baseline = _json.loads(_Path(snapshot_path).read_text())
+        changes = diff_states(baseline, capture_state(vm))
+        return {"changes": changes, "in_sync": not changes}
+
+    @mcp.tool()
+    def set_strip_comp(strip: int, amount: float, dry_run: bool = False) -> dict:
+        """Set a strip's compressor knob (0.0 = off … 10.0 = max)."""
+        if dry_run:
+            return preview("set_strip_comp", {"strip": strip, "amount": amount})
+        vm = get_vm()
+        s = vm.strip(strip)
+        target = getattr(s, "comp", None)
+        if target is None:
+            return {"error": f"strip {strip} has no compressor on {vm.kind}"}
+        amount = max(0.0, min(10.0, amount))
+        if hasattr(target, "knob"):
+            target.knob = amount
+        else:
+            s.comp = amount
+        return {"strip": strip, "comp": amount}
+
+    @mcp.tool()
+    def set_strip_gate(strip: int, amount: float, dry_run: bool = False) -> dict:
+        """Set a strip's noise-gate knob (0.0 = off … 10.0 = max)."""
+        if dry_run:
+            return preview("set_strip_gate", {"strip": strip, "amount": amount})
+        vm = get_vm()
+        s = vm.strip(strip)
+        target = getattr(s, "gate", None)
+        if target is None:
+            return {"error": f"strip {strip} has no gate on {vm.kind}"}
+        amount = max(0.0, min(10.0, amount))
+        if hasattr(target, "knob"):
+            target.knob = amount
+        else:
+            s.gate = amount
+        return {"strip": strip, "gate": amount}
+
+    @mcp.tool()
+    def set_bus_eq(bus: int, enabled: bool, dry_run: bool = False) -> dict:
+        """Enable or disable the parametric EQ on a bus."""
+        if dry_run:
+            return preview("set_bus_eq", {"bus": bus, "enabled": enabled})
+        vm = get_vm()
+        b = vm.bus(bus)
+        target = getattr(b, "eq", None)
+        if target is None:
+            return {"error": f"bus {bus} has no EQ on {vm.kind}"}
+        if hasattr(target, "on"):
+            target.on = enabled
+        else:
+            b.eq = enabled
+        return {"bus": bus, "eq": enabled}
+
+    @mcp.tool()
+    def set_strip_device(
+        strip: int, device_name: str, driver: str = "wdm", dry_run: bool = False
+    ) -> dict:
+        """Bind a hardware strip to a physical input device.
+        driver: wdm|mme|ks|asio. Hardware strips only (virtual strips have no device)."""
+        if driver not in ("wdm", "mme", "ks", "asio"):
+            return {"error": "driver must be wdm|mme|ks|asio"}
+        if dry_run:
+            return preview(
+                "set_strip_device", {"strip": strip, "device": device_name, "driver": driver}
+            )
+        vm = get_vm()
+        hw, _, _ = vm.counts()
+        if strip >= hw:
+            return {"error": f"strip {strip} is virtual; only strips 0..{hw - 1} take devices"}
+        s = vm.strip(strip)
+        setattr(s.device, driver, device_name)
+        return {"strip": strip, "device": device_name, "driver": driver}
+
+    @mcp.tool()
     def health_check() -> dict:
         """Verify connection to Voicemeeter and report kind/version."""
         try:

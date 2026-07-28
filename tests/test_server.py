@@ -10,6 +10,8 @@ EXPECTED = {
     "mixer_state", "set_strip_gain", "mute_strip", "set_strip_routing",
     "set_bus_gain", "mute_bus", "get_levels", "trigger_macro_button",
     "load_preset", "restart_audio_engine", "health_check",
+    "snapshot_state", "diff_vs_snapshot", "set_strip_comp", "set_strip_gate",
+    "set_bus_eq", "set_strip_device",
 }
 
 
