@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "voicemeeter-mcp"
-version = "0.1.1"
+version = "0.2.0"
 description = "MCP server for controlling Voicemeeter (Basic/Banana/Potato) on Windows: strip and bus gains, mutes, routing, levels, macro buttons, and presets."
 readme = "README.md"
 license = "MIT"
