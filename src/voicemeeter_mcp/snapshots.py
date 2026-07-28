@@ -40,7 +40,7 @@ def capture_state(vm) -> dict:
 def diff_states(baseline: dict, current: dict) -> list[dict]:
     """List every parameter that differs between two snapshots."""
     changes: list[dict] = []
-    for section in ("strips", "buses"):
+    for section, singular in (("strips", "strip"), ("buses", "bus")):
         base_sec = baseline.get(section, {})
         cur_sec = current.get(section, {})
         for idx in sorted(set(base_sec) | set(cur_sec), key=lambda x: int(x)):
@@ -50,7 +50,7 @@ def diff_states(baseline: dict, current: dict) -> list[dict]:
                 if b.get(key) != c.get(key):
                     changes.append(
                         {
-                            "where": f"{section[:-1]} {idx} ({c.get('label') or b.get('label')})",
+                            "where": f"{singular} {idx} ({c.get('label') or b.get('label')})",
                             "param": key,
                             "baseline": b.get(key),
                             "current": c.get(key),
