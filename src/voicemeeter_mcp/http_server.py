@@ -71,5 +71,15 @@ def serve(app, host: str, port: int) -> None:
         sys.stdout = open(os.devnull, "w")  # noqa: SIM115 - lives for process lifetime
     if sys.stderr is None:
         sys.stderr = open(os.devnull, "w")  # noqa: SIM115
+    # The SDK's own rebinding guard only admits localhost Hosts; HardenedASGI
+    # enforces the equivalent invariant (IP-literal Hosts) for LAN use.
+    try:
+        from mcp.server.transport_security import TransportSecuritySettings
+
+        app.settings.transport_security = TransportSecuritySettings(
+            enable_dns_rebinding_protection=False
+        )
+    except ImportError:
+        pass
     asgi = HardenedASGI(app.streamable_http_app())
     uvicorn.run(asgi, host=host, port=port, log_level="warning")
