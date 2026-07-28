@@ -16,7 +16,14 @@ def main() -> None:
         "--http",
         type=int,
         metavar="PORT",
-        help="serve streamable-HTTP on 0.0.0.0:PORT instead of stdio",
+        help="serve hardened streamable-HTTP on PORT instead of stdio",
+    )
+    parser.add_argument(
+        "--http-host",
+        default="127.0.0.1",
+        metavar="ADDR",
+        help="bind address for --http (default 127.0.0.1; set 0.0.0.0 only on "
+        "a trusted LAN, ideally with a firewall rule and VM_MCP_HTTP_TOKEN)",
     )
     args = parser.parse_args()
 
@@ -24,9 +31,9 @@ def main() -> None:
 
     app = build_app()
     if args.http:
-        app.settings.host = "0.0.0.0"
-        app.settings.port = args.http
-        app.run(transport="streamable-http")
+        from .http_server import serve
+
+        serve(app, args.http_host, args.http)
     else:
         app.run()
 
