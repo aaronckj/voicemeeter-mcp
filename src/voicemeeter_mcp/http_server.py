@@ -60,7 +60,16 @@ class HardenedASGI:
 
 
 def serve(app, host: str, port: int) -> None:
+    import os
+    import sys
+
     import uvicorn
 
+    # Under pythonw (no console) std streams are None; uvicorn's logging
+    # would crash writing to them.
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w")  # noqa: SIM115 - lives for process lifetime
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w")  # noqa: SIM115
     asgi = HardenedASGI(app.streamable_http_app())
     uvicorn.run(asgi, host=host, port=port, log_level="warning")
