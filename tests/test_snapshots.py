@@ -55,3 +55,27 @@ def test_diff_detects_changes():
     assert ("strip 1 (s1)", "mute") in params
     assert ("bus 0 (b0)", "eq") in params
     assert len(changes) == 3
+
+
+def test_snapshot_name_rejects_traversal():
+    import pytest
+
+    from voicemeeter_mcp.snapshots import save_snapshot
+
+    with pytest.raises(ValueError):
+        save_snapshot({}, "../../evil")
+    with pytest.raises(ValueError):
+        save_snapshot({}, "a/b")
+
+
+def test_resolve_snapshot_path_confined(tmp_path):
+    import pytest
+
+    from voicemeeter_mcp import snapshots
+
+    with pytest.raises(ValueError):
+        snapshots.resolve_snapshot_path("/etc/passwd")
+    with pytest.raises(ValueError):
+        snapshots.resolve_snapshot_path(str(snapshots.SNAPSHOT_DIR / ".." / "x.json"))
+    ok = snapshots.SNAPSHOT_DIR / "good.json"
+    assert snapshots.resolve_snapshot_path(str(ok)) == ok.resolve()

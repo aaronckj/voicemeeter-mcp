@@ -3,10 +3,21 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 
 SNAPSHOT_DIR = Path.home() / ".config" / "voicemeeter-mcp" / "snapshots"
+_NAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
+def resolve_snapshot_path(path: str) -> Path:
+    """Resolve a snapshot path, refusing anything outside SNAPSHOT_DIR."""
+    rp = Path(path).expanduser().resolve()
+    base = SNAPSHOT_DIR.resolve()
+    if not rp.is_relative_to(base):
+        raise ValueError(f"snapshot path must be inside {base}")
+    return rp
 
 STRIP_PARAMS = ("gain", "mute", "A1", "A2", "A3", "B1", "B2", "B3", "comp", "gate")
 BUS_PARAMS = ("gain", "mute", "eq")
@@ -60,6 +71,8 @@ def diff_states(baseline: dict, current: dict) -> list[dict]:
 
 
 def save_snapshot(state: dict, name: str) -> Path:
+    if not _NAME_RE.match(name):
+        raise ValueError("snapshot name must be 1-64 chars of letters, digits, _ or -")
     SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     path = SNAPSHOT_DIR / f"{name}-{stamp}.json"

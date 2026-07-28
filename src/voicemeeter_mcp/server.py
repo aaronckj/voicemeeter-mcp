@@ -157,25 +157,33 @@ def build_app() -> FastMCP:
     @mcp.tool()
     def snapshot_state(name: str = "baseline") -> dict:
         """Save the full mixer state (gains, mutes, routing, comp/gate, EQ) to a
-        named snapshot file. Take one when the stream sounds RIGHT."""
+        named snapshot file (letters/digits/_/- only). Take one when the stream
+        sounds RIGHT."""
         from .snapshots import capture_state, save_snapshot
 
         vm = get_vm()
         state = capture_state(vm)
-        path = save_snapshot(state, name)
+        try:
+            path = save_snapshot(state, name)
+        except ValueError as exc:
+            return {"error": str(exc)}
         return {"snapshot_path": str(path), "kind": state["kind"]}
 
     @mcp.tool()
     def diff_vs_snapshot(snapshot_path: str) -> dict:
         """Compare the LIVE mixer state against a saved snapshot — answers
-        'what changed since the known-good config'."""
+        'what changed since the known-good config'. Snapshot must live in the
+        snapshot directory (as written by snapshot_state)."""
         import json as _json
-        from pathlib import Path as _Path
 
-        from .snapshots import capture_state, diff_states
+        from .snapshots import capture_state, diff_states, resolve_snapshot_path
 
         vm = get_vm()
-        baseline = _json.loads(_Path(snapshot_path).read_text())
+        try:
+            path = resolve_snapshot_path(snapshot_path)
+        except ValueError as exc:
+            return {"error": str(exc)}
+        baseline = _json.loads(path.read_text())
         changes = diff_states(baseline, capture_state(vm))
         return {"changes": changes, "in_sync": not changes}
 
